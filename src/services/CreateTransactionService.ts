@@ -1,8 +1,9 @@
 import AppError from '../errors/AppError';
 import Transaction from '../models/Transaction';
-import { getCustomRepository } from 'typeorm'
+import { getCustomRepository, getRepository } from 'typeorm'
 
 import TransactionsRepository from '../repositories/TransactionsRepository'
+import CategoryRepository from '../models/Category'
 
 interface ICreateTransactionServiceProps {
   title: string,
@@ -13,8 +14,27 @@ interface ICreateTransactionServiceProps {
 class CreateTransactionService {
   public async execute({ title, value, type, category }: ICreateTransactionServiceProps): Promise<Transaction> {
     const newTransactionRepository = getCustomRepository(TransactionsRepository)
+    const newCategoryRepository = getRepository(CategoryRepository)
 
-    const newCreatedTransaction = newTransactionRepository.create({ title, value, type })
+    if (type == "outcome") {
+      const { total } = await newTransactionRepository.getBalance()
+
+      if (Number(value) > total) {
+        throw new AppError("Not Credits Enough", 400)
+      }
+    }
+
+
+    let categoryAlreadyExist = await newCategoryRepository.findOne({ where: { title: category } })
+
+    if (!categoryAlreadyExist) {
+      categoryAlreadyExist = newCategoryRepository.create({
+        title: category
+      })
+      await newCategoryRepository.save(categoryAlreadyExist)
+    }
+
+    const newCreatedTransaction = newTransactionRepository.create({ title, value, type, category: categoryAlreadyExist })
 
     await newTransactionRepository.save(newCreatedTransaction)
 

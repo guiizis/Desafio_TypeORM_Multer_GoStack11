@@ -16,6 +16,9 @@ class Transaction {
 
   @ManyToOne(() => category) //pontuando que sera uma relacao manytoone com a tabela de category
   @JoinColumn({ name: "category_id" }) //juntando as colunas de category_id de "transactions" e "category"
+  category: category
+
+  @Column()
   category_id: string;
 
   @CreateDateColumn()
